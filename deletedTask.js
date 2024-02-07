@@ -4,119 +4,98 @@ let statusFilterSelector = document.getElementById("statusFilter");
 let taskList = JSON.parse(localStorage.getItem('tasks')) || [];
 let bin = JSON.parse(localStorage.getItem('bin')) || [];
 
+const createTask = (task) =>{
+    //ROW
+    let row = document.createElement("tr")
 
-//<Functions>
-//Setting color to priority according to the priority level
-const color_priority = () => {
-    let priorityTexts = document.getElementsByClassName('priority-text');
-    for (let i = 0; i < priorityTexts.length; i++) {
-        let priority = priorityTexts[i].innerHTML;
-        if (priority === 'low') {
-            priorityTexts[i].style.color = 'green';
-        } else if (priority === 'medium') {
-            priorityTexts[i].style.color = 'blue';
-        } else if (priority === 'high') {
-            priorityTexts[i].style.color = 'red';
-        }
+    //NAME
+    let name = document.createElement("td")
+    name.innerText = task.taskname
+
+    //PRIORITY
+    let priority = document.createElement("td")
+    priority.innerText = task.priority
+    if(task.priority === "low"){
+        priority.style.color = "green"
+    } else if(task.priority === "medium"){
+        priority.style.color = "blue"
+    } else if(task.priority === "high"){
+        priority.style.color = "red";
     }
+
+    //STATUS
+    let status = document.createElement("td")
+    status.innerText = task.status
+
+    //Restore
+    let restore = document.createElement("td")
+    let restoreBtn = document.createElement("button")
+    restoreBtn.innerText = "restore";
+    restoreBtn.addEventListener("click", (e)=>{
+        restoreTask(e, task)
+    })
+    restore.append(restoreBtn)
+
+    //Delete
+    let deleete = document.createElement("td")
+    let deleteBtn = document.createElement("button")
+    deleteBtn.innerText = "delete";
+    deleteBtn.addEventListener("click", (e)=>{
+        deleteTask(e, task)
+    })
+    deleete.append(deleteBtn)
+
+    //Appending all td's to TR
+    row.append(name, priority, status, restore, deleete)
+
+    //Appending Row to Table Body
+    tbody.append(row)
 }
 
-//Restoring a task from bin to LS
-const restore = (rowID) => {
-    let restoredEleArray = [];
-    let restoredEle;
-    restoredEleArray = bin.splice(rowID, 1)
-    restoredEle = restoredEleArray.shift();
-    getDeletedTasks();
-    taskList.push(restoredEle)
+const RenderItems = (tasks = bin)=>{
+    tbody.innerHTML = "";
+    tasks.forEach(task => {
+        createTask(task)
+    });
+}
+RenderItems();
+
+const restoreTask = (e, task) =>{
+    bin.splice(bin.indexOf(task), 1)
     localStorage.setItem("bin", JSON.stringify(bin))
+    e.target.parentNode.parentNode.remove();
+    taskList.push(task)
     localStorage.setItem("tasks", JSON.stringify(taskList))
 }
-//Removing a task from bin permenantly
-const deleterow = (rowID) => {
-    let deletedEleArray = [];
-    let deletedEle;
-    deletedEleArray = bin.splice(rowID, 1)
-    deletedEle = deletedEleArray.shift();
-    getDeletedTasks();
+
+const deleteTask = (e, task) => {
+    bin.splice(bin.indexOf(task), 1)
     localStorage.setItem("bin", JSON.stringify(bin))
+    e.target.parentNode.parentNode.remove();
 }
 
-
-//Clearing everything present in Table body then fetching rows from local storage
-const getDeletedTasks = () => {
-    tbody.innerHTML = '';
-    for (let i = 0; i < bin.length; i++) {
-        tbody.innerHTML += `
-        <tr id="${i}">
-        <td>${bin[i].taskname}</td>
-        <td><p class="priority-text">${bin[i].priority}</p></td>
-        <td>${bin[i].status}</td>
-        <td><button class="restore-btn" onclick="restore(${i})">restore</button></td>
-        <td><button class="delete-btn" onclick="deleterow(${i})">delete</button></td>
-        </tr>
-        `;
-    }
-    color_priority();
-}
-
-const filterRender = (tasks) => {
-    tbody.innerHTML = '';
-    for (let i = 0; i < tasks.length; i++) {
-        tbody.innerHTML += `
-        <tr id="${i}">
-        <td>${tasks[i].taskname}</td>
-        <td><p class="priority-text">${tasks[i].priority}</p></td>
-        <td>${tasks[i].status}</td>
-        <td><button class="restore-btn" onclick="restore(${i})">restore</button></td>
-        <td><button class="delete-btn" onclick="deleterow(${i})">delete</button></td>
-        </tr>
-        `;
-    }
-    color_priority();
-}
-
-// Filter func
-const filter = (priority, status) => {
-    let filteredTasks;
-    if(priority || status)
-    {
-    if(priority && status)
-    {
-        filteredTasks = bin.filter((task) => {
-            return task.priority === priority && task.status === status
+const filter = () =>{
+    let filteredTasks = [];
+    if(priorityFilterSelecter.value && statusFilterSelector.value){
+        filteredTasks = bin.filter((task) =>{
+            return task.priority === priorityFilterSelecter.value && task.status === statusFilterSelector.value
         })
-    }
-    else
-    if(priority)
-    {
-        filteredTasks = bin.filter((task) => {
-            return task.priority === priority
+        RenderItems(filteredTasks)
+    } else if(priorityFilterSelecter.value){
+        filteredTasks = bin.filter((task) =>{
+            return task.priority === priorityFilterSelecter.value
         })
-    }
-    else
-    if(status)
-    {
-        filteredTasks = bin.filter((task) => {
-            return task.status === status
+        RenderItems(filteredTasks)
+    } else if(statusFilterSelector.value){
+        filteredTasks = bin.filter((task) =>{
+            return task.status === statusFilterSelector.value
         })
+        RenderItems(filteredTasks)
     }
-    filterRender(filteredTasks);
-}
-else
-{
-    getDeletedTasks();
-}
-   
-    
+    else{
+        RenderItems();
+    }
 }
 
-
-// Event listeners
-window.addEventListener("DOMContentLoaded", getDeletedTasks);
-priorityFilterSelecter.addEventListener("change", function(){
-    filter(priorityFilterSelecter.value, statusFilterSelector.value)
-});
-statusFilterSelector.addEventListener("change", function(){
-    filter(priorityFilterSelecter.value, statusFilterSelector.value)
-});
+priorityFilterSelecter.addEventListener("change", filter)
+statusFilterSelector.addEventListener("change", filter)
